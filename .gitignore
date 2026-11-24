@@ -1,0 +1,7 @@
+.env
+raw.json
+data.json
+Phaze Usage Dashboard.html
+__pycache__/
+*.pyc
+.venv/

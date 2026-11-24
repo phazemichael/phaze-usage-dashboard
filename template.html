@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phaze usage dashboard</title>
+<style>
+/*FONTS*/
+:root{
+  --brand:#6464fe; --brand-ink:#3b3bd6; --brand-50:#f0f0ff; --brand-100:#e1e1ff;
+  --ink:#16162a; --ink-2:#4a4a63; --muted:#7c7c94; --line:#e6e6ef; --line-2:#f1f1f6;
+  --bg:#f7f7fb; --card:#ffffff;
+  --green:#1f9d6b; --amber:#d98a00; --red:#d64545; --blue:#2f7fd8;
+  --o0:#6464fe; --o1:#18a999; --o2:#f0a020; --o3:#e35d9c; --o4:#7a8599;
+  --r:10px;
+  --text:"AT Name Sans Text", ui-sans-serif, "Segoe UI", sans-serif;
+  --display:"AT Name Sans Display", "AT Name Sans Text", ui-sans-serif, sans-serif;
+  --mono:ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--text);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+.band{background:var(--brand);color:#fff;padding:22px 32px 4px}
+.band-top{display:flex;align-items:baseline;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.band h1{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.01em;margin:0}
+.band .sub{opacity:.85;font-size:13px;margin-top:2px}
+.snap{font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;opacity:.85;text-align:right}
+.kpis{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;margin:22px 0 20px;border-top:1px solid rgba(255,255,255,.25)}
+.kpi{padding:14px 18px 2px 0}
+.kpi + .kpi{padding-left:18px;border-left:1px solid rgba(255,255,255,.18)}
+.kpi .v{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.kpi .v small{font-size:15px;font-weight:700;opacity:.8;margin-left:2px}
+.kpi .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.85;margin-top:4px}
+.kpi .h{font-size:12px;opacity:.8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.controls{position:sticky;top:0;z-index:5;background:rgba(247,247,251,.94);backdrop-filter:saturate(1.2) blur(6px);border-bottom:1px solid var(--line);padding:10px 32px;display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.ctl{display:flex;align-items:center;gap:8px}
+.ctl > span{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.seg{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:8px;padding:2px}
+.seg button{border:0;background:transparent;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--ink-2);white-space:nowrap}
+.seg button:hover{color:var(--ink);background:var(--line-2)}
+.seg button[aria-pressed="true"]{background:var(--brand);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+.seg .dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:0}
+.api{margin:18px 32px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2)}
+.api b{font-weight:600;color:var(--ink)}
+.chip{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:2px 7px;color:var(--ink-2);white-space:nowrap}
+.chip .m{color:var(--brand-ink);font-weight:600;margin-right:4px}
+main{padding:18px 32px 48px;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px 14px;min-width:0;display:flex;flex-direction:column}
+.span-12{grid-column:span 12}.span-8{grid-column:span 8}.span-7{grid-column:span 7}.span-6{grid-column:span 6}.span-5{grid-column:span 5}.span-4{grid-column:span 4}
+.card h2{font-family:var(--display);font-weight:700;font-size:16px;margin:0;letter-spacing:-.005em}
+.card .desc{color:var(--muted);font-size:12.5px;margin:2px 0 14px}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.src{margin-top:auto;padding-top:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-top:1px dashed var(--line);font-size:11px;color:var(--muted)}
+.src .lbl{font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;font-size:10px;margin-right:2px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:0}
+/* heatmap */
+.heat{display:grid;grid-template-columns:42px repeat(24,minmax(0,1fr)) 64px;gap:3px;align-items:center}
+.heat .dt{display:flex;align-items:center;gap:5px;padding-left:6px;font-family:var(--mono);font-size:10.5px;color:var(--ink-2)}
+.heat .dt span{display:block;height:8px;background:var(--brand);border-radius:2px;opacity:.55}
+.heat .prof{align-self:end;background:var(--brand);border-radius:2px 2px 0 0;opacity:.55;min-height:1px}
+.heat .sep{grid-column:1/-1;height:4px}
+.heat .hd{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center}
+.heat .rd{font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+.cell{aspect-ratio:1/1;border-radius:4px;background:var(--line-2);position:relative;cursor:default;transition:transform .08s}
+.cell:hover{outline:2px solid var(--ink);outline-offset:0;z-index:2}
+.scale{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-top:12px}
+.scale .bar{flex:0 0 160px;height:8px;border-radius:4px}
+.peaks{display:flex;flex-direction:column;gap:2px}
+.peak{display:grid;grid-template-columns:1fr auto;gap:8px;padding:9px 0;border-bottom:1px solid var(--line-2);align-items:baseline}
+.peak:last-child{border-bottom:0}
+.peak .w{font-weight:600}
+.peak .n{font-family:var(--display);font-weight:700;font-variant-numeric:tabular-nums}
+.peak .x{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.bigfig{font-family:var(--display);font-weight:800;font-size:44px;line-height:1;color:var(--brand);font-variant-numeric:tabular-nums}
+.minilabel{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+/* tables */
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{font-family:var(--mono);font-weight:500;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:0 8px 8px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+th.num,td.num{text-align:right}
+th[aria-sort]::after{content:" \2193";color:var(--brand)}
+th[aria-sort="ascending"]::after{content:" \2191"}
+td{padding:7px 8px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:var(--brand-50)}
+tr.click{cursor:pointer}
+.barcell{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.barcell .track{flex:0 0 90px;height:6px;background:var(--line-2);border-radius:3px;overflow:hidden}
+.barcell .fill{display:block;height:100%;background:var(--brand);border-radius:3px}
+.dotc{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:0}
+.tag{font-family:var(--mono);font-size:10.5px;padding:1px 6px;border-radius:5px;background:var(--line-2);color:var(--ink-2)}
+.tag.on{background:#e3f6ee;color:var(--green)}.tag.off{background:#f1f1f6;color:var(--muted)}.tag.warn{background:#fff3dc;color:#9a6400}.tag.bad{background:#fde8e8;color:var(--red)}
+.more{margin-top:8px;border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 10px;font-size:12.5px;cursor:pointer;align-self:flex-start}
+.more:hover{border-color:var(--brand);color:var(--brand-ink)}
+.scroll{overflow-x:auto}
+/* charts */
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{font-family:var(--mono);font-size:10px;fill:var(--muted)}
+.axis line{stroke:var(--line)}
+/* fleet */
+.vrow{display:grid;grid-template-columns:62px 1fr 92px;gap:10px;align-items:center;padding:3px 0;font-variant-numeric:tabular-nums}
+.vrow .vn{font-family:var(--mono);font-size:12px}
+.vrow .vt{height:14px;background:var(--line-2);border-radius:3px;display:flex;overflow:hidden}
+.vrow .vt span{height:100%}
+.vrow .vc{font-size:12px;color:var(--ink-2);text-align:right}
+.split{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--line-2);margin:6px 0 4px}
+.splitl{display:flex;gap:14px;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
+.fleetstats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+/* relays */
+.relays{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.relay{border:1px solid var(--line);border-radius:9px;padding:12px 14px}
+.relay.off{background:var(--bg)}
+.relay .t{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.relay .nm{font-family:var(--mono);font-size:12.5px;font-weight:600}
+.relay .meta{font-size:12px;color:var(--muted);margin:3px 0 8px}
+.meter{display:grid;grid-template-columns:44px 1fr 40px;gap:8px;align-items:center;font-size:11.5px;color:var(--ink-2);margin:3px 0;font-variant-numeric:tabular-nums}
+.meter .tr{height:5px;background:var(--line-2);border-radius:3px;overflow:hidden}
+.meter .tr span{display:block;height:100%;background:var(--brand)}
+.relay .io{display:flex;justify-content:space-between;font-size:12px;margin-top:8px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.empty{color:var(--muted);font-size:13px;padding:22px 0;text-align:center}
+#tip{position:fixed;pointer-events:none;z-index:50;background:var(--ink);color:#fff;font-size:12px;line-height:1.4;padding:8px 10px;border-radius:7px;max-width:260px;opacity:0;transition:opacity .08s;box-shadow:0 6px 20px rgba(20,20,40,.25)}
+#tip b{font-weight:600}
+#tip .tm{font-family:var(--mono);font-size:10.5px;opacity:.7;letter-spacing:.04em;text-transform:uppercase}
+footer{grid-column:span 12;color:var(--muted);font-size:12px;padding-top:4px}
+
+.kpi .v.good{color:#d9ffe9}
+/* savings */
+.inputs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:16px}
+.inp label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.inp .box{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 10px;height:36px}
+.inp .box:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-100)}
+.inp input[type=number]{border:0;outline:0;font:inherit;width:100%;font-variant-numeric:tabular-nums;background:transparent}
+.inp .u{color:var(--muted);font-size:12.5px;white-space:nowrap}
+.inp input[type=range]{width:100%;accent-color:var(--brand)}
+.inp .rv{font-family:var(--display);font-weight:700;font-size:15px}
+.inp .hint{font-size:11.5px;color:var(--muted);margin-top:4px}
+.sugg .sg-head{display:grid;grid-template-columns:34px 1fr auto;gap:14px;align-items:start}
+.rank{width:30px;height:30px;border-radius:50%;background:var(--brand-50);color:var(--brand-ink);display:grid;place-items:center;font-family:var(--display);font-weight:800}
+.sugg h2{font-size:17px}
+.lead{margin:4px 0 0;color:var(--ink-2);max-width:780px}
+.save{text-align:right;min-width:150px}
+.save .big{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;color:var(--green);font-variant-numeric:tabular-nums}
+.save .big.zero{color:var(--muted)}
+.save .sm{font-size:12px;color:var(--muted);margin-top:3px}
+.sg-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:26px;margin-top:16px}
+.howto h3,.evid h3{font-family:var(--mono);font-weight:500;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.howto ol{margin:0;padding-left:18px;color:var(--ink-2)}
+.howto li{margin:0 0 6px}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.fact .n{font-family:var(--display);font-weight:700;font-size:22px;font-variant-numeric:tabular-nums}
+.fact .n small{font-size:13px;color:var(--muted);font-weight:600}
+.fact .l{font-size:12px;color:var(--muted)}
+.note{font-size:12px;color:var(--muted);margin-top:10px}
+.callout{background:var(--brand-50);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--ink-2);margin-top:12px}
+.callout b{color:var(--ink)}
+@media (max-width:1180px){.inputs{grid-template-columns:repeat(3,1fr)}.sg-body{grid-template-columns:1fr}}
+@media (max-width:640px){.inputs{grid-template-columns:repeat(2,1fr)}.facts{grid-template-columns:repeat(2,1fr)}.sugg .sg-head{grid-template-columns:1fr}.save{text-align:left}}
+
+/* ---- mode switch ---- */
+.band{transition:background .25s}
+body.mode-savings .band{background:linear-gradient(135deg,#101027 0%,#17173a 60%,#14303a 100%)}
+body.mode-savings .controls{background:rgba(240,247,244,.95)}
+body.mode-savings .seg button[aria-pressed="true"]{background:#16162a}
+.topnav{display:flex;gap:6px;margin:-6px 0 18px;padding:4px;background:rgba(0,0,0,.18);border-radius:12px;width:max-content}
+.topnav button{display:flex;align-items:center;gap:8px;border:0;background:transparent;color:rgba(255,255,255,.8);padding:9px 18px;border-radius:9px;cursor:pointer;font-weight:600;font-size:14.5px}
+.topnav button:hover{color:#fff;background:rgba(255,255,255,.1)}
+.topnav button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.topnav button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.topnav svg{width:16px;height:16px;flex:none}
+.badge{font-family:var(--mono);font-size:11px;font-weight:600;background:#1f9d6b;color:#fff;border-radius:999px;padding:2px 8px}
+.topnav button[aria-selected="true"] .badge{background:#e3f6ee;color:#137a52}
+/* savings hero */
+.hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,1.1fr);gap:0;margin-top:20px;border-top:1px solid rgba(255,255,255,.14);padding:20px 0 26px}
+.hero > div + div{border-left:1px solid rgba(255,255,255,.12);padding-left:28px}
+.hero > div{padding-right:28px}
+.hero .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.65)}
+.hero .huge{font-family:var(--display);font-weight:800;font-size:58px;line-height:1;color:#5ee3a6;letter-spacing:-.02em;margin:8px 0 6px;font-variant-numeric:tabular-nums}
+.hero .huge small{font-size:22px;color:rgba(255,255,255,.7);font-weight:700;margin-left:6px;letter-spacing:0}
+.hero .sub2{color:rgba(255,255,255,.82);font-size:14px;max-width:420px}
+.hero .sub2 b{color:#fff}
+.ba{display:grid;grid-template-columns:62px 1fr 74px;gap:10px;align-items:center;margin:12px 0 0;font-variant-numeric:tabular-nums}
+.ba .bl{font-size:12.5px;color:rgba(255,255,255,.75)}
+.ba .bt{height:22px;background:rgba(255,255,255,.08);border-radius:5px;overflow:hidden}
+.ba .bt span{display:block;height:100%;border-radius:5px}
+.ba .bv{font-family:var(--display);font-weight:700;font-size:16px;text-align:right}
+.mini3{display:grid;grid-template-columns:1fr;gap:12px}
+.mini3 .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:9px}
+.mini3 .row:last-child{border-bottom:0}
+.mini3 .k{font-size:13px;color:rgba(255,255,255,.78)}
+.mini3 .k small{display:block;font-size:11.5px;color:rgba(255,255,255,.5)}
+.mini3 .val{font-family:var(--display);font-weight:700;font-size:22px;white-space:nowrap}
+.mini3 .val.g{color:#5ee3a6}
+/* waterfall */
+.wf{display:grid;gap:8px}
+.wfr{display:grid;grid-template-columns:230px 1fr 110px;gap:14px;align-items:center;font-variant-numeric:tabular-nums}
+.wfr .wl{font-size:13.5px}
+.wfr .wl small{display:block;color:var(--muted);font-size:12px}
+.wfr .wt{position:relative;height:30px}
+.wfr .wt span{position:absolute;top:0;bottom:0;border-radius:5px}
+.wfr .wv{font-family:var(--display);font-weight:700;font-size:17px;text-align:right}
+.wfr.tot .wl{font-weight:600}
+.wfr.neg .wv{color:var(--green)}
+.wfr.zero .wv{color:var(--muted)}
+details.assume{background:var(--card);border:1px solid var(--line);border-radius:var(--r);grid-column:span 12}
+details.assume > summary{list-style:none;cursor:pointer;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+details.assume > summary::-webkit-details-marker{display:none}
+details.assume > summary h2{font-family:var(--display);font-weight:700;font-size:15px;margin:0}
+details.assume > summary .vals{display:flex;gap:6px;flex-wrap:wrap}
+details.assume > summary .edit{margin-left:auto;font-size:12.5px;color:var(--brand-ink);font-weight:600}
+details.assume[open] > summary .edit::after{content:" (close)"}
+details.assume .inner{padding:4px 20px 18px}
+.sugg{border-left:4px solid var(--green)}
+.sugg.muted{border-left-color:var(--line)}
+@media (max-width:1180px){.hero{grid-template-columns:1fr}.hero > div + div{border-left:0;padding-left:0;border-top:1px solid rgba(255,255,255,.12);padding-top:16px;margin-top:16px}.wfr{grid-template-columns:150px 1fr 90px}}
+
+@media (max-width:1180px){.kpis{grid-template-columns:repeat(4,1fr)}.kpi:nth-child(5){border-left:0;padding-left:0}.span-8,.span-7,.span-6,.span-5,.span-4{grid-column:span 12}}
+@media (max-width:640px){.band,.controls,main{padding-left:16px;padding-right:16px}.api{margin:14px 16px 0}.kpis{grid-template-columns:repeat(2,1fr)}.kpi{border-left:0!important;padding-left:0!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="band">
+  <nav class="topnav tabs" role="tablist" aria-label="Pages">
+    <button role="tab" data-tab="usage" id="tb-usage" aria-controls="tab-usage"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="8" width="3" height="6.5" rx=".8"/><rect x="6.5" y="4" width="3" height="10.5" rx=".8"/><rect x="11.5" y="1.5" width="3" height="13" rx=".8"/></svg>Usage</button>
+    <button role="tab" data-tab="savings" id="tb-savings" aria-controls="tab-savings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1.5 4.5l5 5 3-3 5 5"/><path d="M10.5 11.5h4v-4"/></svg>Savings &amp; suggestions <span class="badge" id="sv-badge"></span></button>
+  </nav>
+  <div class="band-top">
+    <div>
+      <h1 id="title">Phaze usage</h1>
+      <div class="sub" id="subtitle"></div>
+    </div>
+    <div class="snap" id="snap"></div>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="hero" id="hero" hidden></div>
+</header>
+
+<div class="controls" role="toolbar" aria-label="Filters">
+  <div class="ctl"><span>Organization</span><div class="seg" id="f-org"></div></div>
+  <div class="ctl" id="ctl-range"><span>Period</span><div class="seg" id="f-range"></div></div>
+  <div class="ctl" id="ctl-bill" hidden><span>Billing</span><span style="font-size:12.5px;color:var(--ink-2);text-transform:none;letter-spacing:0;font-family:var(--text)">Calendar months (UTC), complete months only</span></div>
+  <div class="ctl"><span>Time zone</span><div class="seg" id="f-tz"></div></div>
+</div>
+
+<div class="api" id="api"></div>
+
+<main id="tab-usage" role="tabpanel" aria-labelledby="tb-usage">
+  <section class="card span-8" aria-labelledby="h-heat">
+    <div class="card-head">
+      <div><h2 id="h-heat">When people are connected</h2>
+      <div class="desc" id="heat-desc"></div></div>
+      <div class="legend" id="heat-legend"></div>
+    </div>
+    <div class="heat" id="heat"></div>
+    <div class="scale" id="heat-scale"></div>
+    <div class="src" data-src="connections"></div>
+  </section>
+
+  <section class="card span-4" aria-labelledby="h-peaks">
+    <h2 id="h-peaks">Peak load</h2>
+    <div class="desc">Most simultaneous sessions in the period, and the busiest hours of the week.</div>
+    <div id="peakbox"></div>
+    <div class="src" data-src="connections"></div>
+  </section>
+
+  <section class="card span-12" aria-labelledby="h-trend">
+    <div class="card-head">
+      <div><h2 id="h-trend">Session hours per day</h2>
+      <div class="desc">Stacked by organization. Dots mark the day's peak number of simultaneous sessions (right axis).</div></div>
+      <div class="legend" id="trend-legend"></div>
+    </div>
+    <div id="trend"></div>
+    <div class="src" data-src="connections orgs"></div>
+  </section>
+
+  <section class="card span-7" aria-labelledby="h-orgs">
+    <h2 id="h-orgs">Organizations</h2>
+    <div class="desc">Click a row to filter the whole page to that organization.</div>
+    <div class="scroll"><table id="t-orgs"></table></div>
+    <div class="src" data-src="orgs connections machines"></div>
+  </section>
+
+  <section class="card span-5" aria-labelledby="h-len">
+    <h2 id="h-len">Session length</h2>
+    <div class="desc">How long sessions last. Bars count sessions; the figure on the right is each bucket's share of all session hours.</div>
+    <div id="lenhist"></div>
+    <div class="src" data-src="connections"></div>
+  </section>
+
+  <section class="card span-6" aria-labelledby="h-people">
+    <h2 id="h-people">People</h2>
+    <div class="desc">Names are pseudonymized for this demo. Ranked by session hours in the period.</div>
+    <div class="scroll"><table id="t-people"></table></div>
+    <button class="more" id="more-people" hidden></button>
+    <div class="src" data-src="connections members"></div>
+  </section>
+
+  <section class="card span-6" aria-labelledby="h-mach">
+    <h2 id="h-mach">Machine utilization</h2>
+    <div class="desc">Utilization is session hours divided by the hours in the period. Status and version are live from the API; "removed" machines had sessions but are no longer enrolled.</div>
+    <div class="scroll"><table id="t-mach"></table></div>
+    <button class="more" id="more-mach" hidden></button>
+    <div class="src" data-src="machines connections"></div>
+  </section>
+
+  <section class="card span-5" aria-labelledby="h-fleet">
+    <h2 id="h-fleet">Fleet</h2>
+    <div class="desc">Every enrolled machine right now, whether or not it was used in the period.</div>
+    <div class="fleetstats" id="fleetstats"></div>
+    <div class="minilabel" style="margin-bottom:6px">App version, online vs offline</div>
+    <div id="versions"></div>
+    <div class="src" data-src="machines locations groups"></div>
+  </section>
+
+  <section class="card span-7" aria-labelledby="h-relay">
+    <div class="card-head">
+      <div><h2 id="h-relay">Relay health</h2>
+      <div class="desc" id="relay-desc"></div></div>
+    </div>
+    <div class="relays" id="relays"></div>
+    <div class="src" data-src="relays"></div>
+  </section>
+
+  <footer id="foot"></footer>
+</main>
+
+<main id="tab-savings" role="tabpanel" aria-labelledby="tb-savings" hidden>
+  <section class="card span-12" aria-labelledby="h-wf">
+    <h2 id="h-wf">Where the saving comes from</h2>
+    <div class="desc" id="wf-desc"></div>
+    <div class="wf" id="waterfall"></div>
+  </section>
+
+  <details class="assume" id="assume">
+    <summary><h2>Your prices and assumptions</h2><span class="vals" id="assume-vals"></span><span class="edit">Edit</span></summary>
+    <div class="inner">
+    <div class="desc">Change any value and every figure on this page updates. Prices default to Phaze list price.</div>
+    <div class="inputs">
+      <div class="inp"><label for="in-rate">Price per hour</label><div class="box"><span class="u">$&nbsp;</span><input type="number" id="in-rate" min="0" step="0.01"><span class="u">/ h</span></div><div class="hint">Billed by the minute</div></div>
+      <div class="inp"><label for="in-cap">Monthly cap per user</label><div class="box"><span class="u">$&nbsp;</span><input type="number" id="in-cap" min="0" step="1"><span class="u">/ month</span></div><div class="hint" id="cap-hint"></div></div>
+      <div class="inp"><label for="in-max">End sessions after</label><input type="range" id="in-max" min="2" max="16" step="1"><div class="rv" id="max-v"></div><div class="hint">Longest a session should run</div></div>
+      <div class="inp"><label for="in-disc">Commit discount</label><div class="box"><input type="number" id="in-disc" min="0" max="60" step="1"><span class="u">%</span></div><div class="hint">Ask your Phaze rep</div></div>
+      <div class="inp"><label for="in-ws">Cost per workstation</label><div class="box"><span class="u">$&nbsp;</span><input type="number" id="in-ws" min="0" step="10" placeholder="0"><span class="u">/ month</span></div><div class="hint">Hardware, hosting, power</div></div>
+      <div class="inp"><label for="in-seat">Per-seat tool, for comparison</label><div class="box"><span class="u">$&nbsp;</span><input type="number" id="in-seat" min="0" step="1"><span class="u">/ seat</span></div><div class="hint">Optional</div></div>
+    </div>
+    </div>
+  </details>
+
+  <section class="card span-12" aria-labelledby="h-bill">
+    <div class="card-head">
+      <div><h2 id="h-bill">Your monthly Phaze bill, today and after the changes below</h2>
+      <div class="desc" id="bill-desc"></div></div>
+      <div class="legend"><span><i style="background:#c9c9e8"></i>Current usage</span><span><i style="background:var(--brand)"></i>After the suggested changes</span><span><i style="background:#e4e4ec"></i>Incomplete month</span></div>
+    </div>
+    <div id="billchart"></div>
+    <div class="src" data-src="connections members"></div>
+  </section>
+
+  <div id="suggestions" style="display:contents"></div>
+
+  <footer id="sfoot"></footer>
+</main>
+<div id="tip" role="tooltip"></div>
+
+<script>
+const DATA = __DATA__;
+
+/* ---------- constants ---------- */
+const ORG_COLORS = ["var(--o0)","var(--o1)","var(--o2)","var(--o3)","var(--o4)"];
+const ORG_HEX = ["#6464fe","#18a999","#f0a020","#e35d9c","#7a8599"];
+const SNAP = Date.parse(DATA.snapshot_at)/1000;
+const DAY = 86400, HOUR = 3600;
+const FIRST = DATA.sessions.length ? DATA.sessions[0][3] : SNAP - 30*DAY;
+const RANGES = [["all","All time"],["90","90 days"],["30","30 days"],["7","7 days"]];
+const TZS = [["Europe/Berlin","CET"],["UTC","UTC"]];
+const WD = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const ENDPOINTS = {
+  orgs:["GET","/orgs"], connections:["GET","/orgs/{org_id}/connections"], machines:["GET","/orgs/{org_id}/machines"],
+  members:["GET","/orgs/{org_id}/members"], groups:["GET","/orgs/{org_id}/groups"],
+  locations:["GET","/locations"], relays:["GET","/relays"]
+};
+const state = {
+  org: localStorage.getItem("pud.org") ?? "all",
+  range: localStorage.getItem("pud.range") ?? "all",
+  tz: localStorage.getItem("pud.tz") ?? "Europe/Berlin",
+  peopleAll:false, machAll:false,
+  sort:{orgs:["hours",-1], people:["hours",-1], mach:["hours",-1]}
+};
+if (state.org !== "all" && !DATA.orgs[+state.org]) state.org = "all";
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtInt = n => Math.round(n).toLocaleString("en-US");
+const fmtH = h => h >= 100 ? fmtInt(h) : h >= 10 ? h.toFixed(1) : h.toFixed(2);
+function fmtDur(sec){
+  if (sec < 60) return Math.round(sec) + "s";
+  const m = sec/60; if (m < 60) return m.toFixed(m < 10 ? 1 : 0) + " min";
+  const h = Math.floor(m/60), mm = Math.round(m % 60);
+  return h + "h" + (mm ? " " + String(mm).padStart(2,"0") + "m" : "");
+}
+function fmtBps(b){
+  if (b == null) return "–";
+  const u = ["bps","Kbps","Mbps","Gbps"]; let i = 0;
+  while (b >= 1000 && i < u.length-1){ b /= 1000; i++; }
+  return (b >= 100 ? b.toFixed(0) : b.toFixed(1)) + " " + u[i];
+}
+function ago(t){
+  const d = SNAP - t;
+  if (d < 3600) return Math.max(1, Math.round(d/60)) + " min ago";
+  if (d < DAY) return Math.round(d/3600) + " h ago";
+  return Math.round(d/DAY) + " d ago";
+}
+const fmtCache = {};
+function parts(t, tz){
+  // returns {wd:0-6 Mon-first, h, ymd, label}
+  const key = tz + "|" + Math.floor(t/HOUR);
+  if (fmtCache[key]) return fmtCache[key];
+  const f = new Intl.DateTimeFormat("en-GB",{timeZone:tz,weekday:"short",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",hourCycle:"h23"});
+  const p = Object.fromEntries(f.formatToParts(new Date(t*1000)).map(x => [x.type, x.value]));
+  const r = {wd: WD.indexOf(p.weekday), h: +p.hour, ymd: p.year+"-"+p.month+"-"+p.day};
+  return fmtCache[key] = r;
+}
+function fmtWhen(t, tz){
+  return new Intl.DateTimeFormat("en-GB",{timeZone:tz,weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date(t*1000));
+}
+function heatColor(v){
+  // v in 0..1 -> white-ish to brand to deep ink, via oklch mix
+  if (v <= 0) return "var(--line-2)";
+  const t = Math.pow(v, 0.85);
+  if (t < 0.6) return `color-mix(in oklch, #6464fe ${Math.round(4 + t/0.6*96)}%, #f6f6fc)`;
+  return `color-mix(in oklch, #20209a ${Math.round((t-0.6)/0.4*100)}%, #6464fe)`;
+}
+const median = a => { if (!a.length) return 0; const s = [...a].sort((x,y)=>x-y), m = s.length>>1; return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+
+/* ---------- filtering ---------- */
+function windowStart(){ return state.range === "all" ? Math.floor(FIRST/HOUR)*HOUR : SNAP - (+state.range)*DAY; }
+function filtered(){
+  const w0 = windowStart(), org = state.org;
+  const out = [];
+  for (const s of DATA.sessions){
+    if (org !== "all" && s[0] !== +org) continue;
+    if (s[4] < w0 && s[5] !== 2) continue;
+    if (s[5] === 2 && s[3] < w0) continue;
+    out.push(s);
+  }
+  return out;
+}
+const clipDur = (s, w0) => Math.max(0, s[4] - Math.max(s[3], w0));
+
+/* ---------- concurrency engine ---------- */
+function concurrency(sess, w0, tz){
+  // occupancy seconds per hour bucket + per-bucket peak + overall peak via sweep
+  const occ = new Map(), peakB = new Map();
+  const ev = [];
+  for (const s of sess){
+    if (s[5] === 2) continue;
+    const a = Math.max(s[3], w0), b = s[4];
+    if (b <= a) continue;
+    ev.push([a, 1], [b, -1]);
+    for (let hb = Math.floor(a/HOUR); hb*HOUR < b; hb++){
+      const lo = Math.max(a, hb*HOUR), hi = Math.min(b, (hb+1)*HOUR);
+      if (hi > lo) occ.set(hb, (occ.get(hb)||0) + (hi-lo));
+    }
+  }
+  ev.sort((x,y) => x[0]-y[0] || x[1]-y[1]);
+  let cur = 0, peak = 0, peakAt = null;
+  for (let i = 0; i < ev.length; i++){
+    cur += ev[i][1];
+    const t0 = ev[i][0], t1 = i+1 < ev.length ? ev[i+1][0] : t0;
+    if (t1 > t0 && cur > 0){
+      if (cur > peak){ peak = cur; peakAt = t0; }
+      for (let hb = Math.floor(t0/HOUR); hb*HOUR < t1; hb++){
+        if ((peakB.get(hb)||0) < cur) peakB.set(hb, cur);
+      }
+    }
+  }
+  // fold buckets into weekday x hour cells
+  const cells = Array.from({length:7}, () => Array.from({length:24}, () => ({occ:0, hours:0, peak:0, starts:0})));
+  const h0 = Math.floor(w0/HOUR), h1 = Math.floor(SNAP/HOUR);
+  for (let hb = h0; hb <= h1; hb++){
+    const p = parts(hb*HOUR, tz), c = cells[p.wd][p.h];
+    c.hours++; c.occ += occ.get(hb)||0;
+    const pk = peakB.get(hb)||0; if (pk > c.peak) c.peak = pk;
+  }
+  for (const s of sess){ if (s[5] === 2 || s[3] < w0) continue; const p = parts(s[3], tz); cells[p.wd][p.h].starts++; }
+  return {cells, peak, peakAt, peakB};
+}
+
+/* ---------- render: controls ---------- */
+function renderControls(){
+  const o = $("#f-org");
+  const opts = [["all","All", null], ...DATA.orgs.map(g => [String(g.i), g.name, ORG_COLORS[g.i % 5]])];
+  o.innerHTML = opts.map(([v,l,c]) => `<button data-v="${v}" aria-pressed="${state.org===v}">${c?`<i class="dot" style="background:${c}"></i>`:""}${esc(l)}</button>`).join("");
+  $("#f-range").innerHTML = RANGES.map(([v,l]) => `<button data-v="${v}" aria-pressed="${state.range===v}">${l}</button>`).join("");
+  $("#f-tz").innerHTML = TZS.map(([v,l]) => `<button data-v="${v}" aria-pressed="${state.tz===v}">${l}</button>`).join("");
+}
+function bindControls(){
+  const bind = (sel, key) => $(sel).addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    state[key] = b.dataset.v; localStorage.setItem("pud."+key, state[key]); render();
+  });
+  bind("#f-org","org"); bind("#f-range","range"); bind("#f-tz","tz");
+  $("#more-people").addEventListener("click", () => { state.peopleAll = !state.peopleAll; render(); });
+  $("#more-mach").addEventListener("click", () => { state.machAll = !state.machAll; render(); });
+}
+
+/* ---------- render: api strip + sources ---------- */
+function renderApi(){
+  const used = ["orgs","connections","machines","members","groups","locations","relays"];
+  $("#api").innerHTML = `<b>Built on the Phaze Enterprise API.</b> One read-only API key, ${used.length} endpoints, no agent on the machines:` +
+    used.map(k => `<span class="chip"><span class="m">${ENDPOINTS[k][0]}</span>${ENDPOINTS[k][1]}</span>`).join("");
+  document.querySelectorAll(".src").forEach(el => {
+    el.innerHTML = `<span class="lbl">Source</span>` + el.dataset.src.split(" ").map(k => `<span class="chip"><span class="m">${ENDPOINTS[k][0]}</span>${ENDPOINTS[k][1]}</span>`).join("");
+  });
+}
+
+/* ---------- render: KPIs ---------- */
+function renderKpis(sess, conc, w0){
+  const ok = sess.filter(s => s[5] !== 2);
+  const secs = ok.reduce((a,s) => a + clipDur(s,w0), 0);
+  const ppl = new Set(ok.map(s => s[1])).size;
+  const machUsed = new Set(ok.map(s => s[2])).size;
+  const machTotal = DATA.machines.filter(m => state.org === "all" || m.org === +state.org).length;
+  const attempts = sess.filter(s => s[3] >= w0).length;
+  const failed = sess.filter(s => s[5] === 2).length;
+  const success = attempts ? (1 - failed/attempts)*100 : 0;
+  const med = median(ok.filter(s => s[3] >= w0).map(s => s[4]-s[3]));
+  const active = ok.filter(s => s[5] === 1).length;
+  const K = [
+    [fmtH(secs/HOUR), "h", "Session hours", `${fmtInt(ok.length)} sessions`],
+    [fmtInt(ppl), "", "Active people", `of ${DATA.people.length} in the enterprise`],
+    [fmtInt(machUsed), "", "Machines used", `${machTotal} enrolled now, ${DATA.machines.filter(m => m.online && (state.org==="all"||m.org===+state.org)).length} online`],
+    [fmtInt(conc.peak), "", "Peak concurrent", conc.peakAt ? fmtWhen(conc.peakAt, state.tz) : "no sessions"],
+    [fmtDur(med), "", "Median session", `mean ${fmtDur(ok.length ? secs/ok.length : 0)}`],
+    [success.toFixed(1), "%", "Connect success", `${fmtInt(failed)} of ${fmtInt(attempts)} attempts failed`],
+    [fmtInt(active), "", "Live right now", active ? "sessions in progress" : "no open sessions"],
+  ];
+  $("#kpis").innerHTML = K.map(([v,u,l,h]) => `<div class="kpi"><div class="v">${v}${u && !u.startsWith("<") ? `<small>${u}</small>` : u}</div><div class="l">${l}</div><div class="h">${esc(h)}</div></div>`).join("");
+}
+
+/* ---------- render: heatmap ---------- */
+function renderHeat(conc){
+  const cells = conc.cells;
+  let max = 0;
+  cells.forEach(r => r.forEach(c => { c.avg = c.hours ? c.occ/(c.hours*HOUR) : 0; if (c.avg > max) max = c.avg; }));
+  const tzl = TZS.find(t => t[0]===state.tz)[1];
+  $("#heat-desc").textContent = `Average number of simultaneous sessions for each hour of the week (${tzl}). Hover a cell for its peak and number of session starts.`;
+  const dayH = cells.map(r => r.reduce((a,c) => a + c.occ, 0)/HOUR);
+  const hourH = Array.from({length:24}, (_,k) => cells.reduce((a,r) => a + r[k].occ, 0)/HOUR);
+  const totH = dayH.reduce((a,b)=>a+b,0) || 1, maxD = Math.max(1e-9, ...dayH), maxHr = Math.max(1e-9, ...hourH);
+  let h = `<div></div>` + Array.from({length:24}, (_,i) => `<div class="hd">${i%3===0 ? String(i).padStart(2,"0") : ""}</div>`).join("") + `<div class="hd" style="text-align:left;padding-left:6px">share</div>`;
+  for (let d = 0; d < 7; d++){
+    h += `<div class="rd">${WD[d]}</div>`;
+    for (let k = 0; k < 24; k++){
+      const c = cells[d][k];
+      h += `<div class="cell" style="background:${heatColor(max ? c.avg/max : 0)}" data-d="${d}" data-h="${k}" aria-label="${WD[d]} ${k}:00, average ${c.avg.toFixed(2)}"></div>`;
+    }
+    h += `<div class="dt"><span style="width:${28*dayH[d]/maxD}px"></span>${Math.round(100*dayH[d]/totH)}%</div>`;
+  }
+  h += `<div class="sep"></div><div class="rd" style="font-size:10px;color:var(--muted)">hours</div>` + hourH.map((v,k) => `<div class="prof" style="height:${Math.round(34*v/maxHr)}px" data-ph="${k}"></div>`).join("") + `<div></div>`;
+  $("#heat").innerHTML = h;
+  $("#heat-scale").innerHTML = `<span>0</span><span class="bar" style="background:linear-gradient(90deg, ${[0,.25,.5,.75,1].map(v=>heatColor(v===0?0.001:v)).join(",")})"></span><span>${max.toFixed(2)} avg simultaneous</span>`;
+  $("#heat").onmousemove = e => {
+    const pr = e.target.closest(".prof");
+    if (pr){ const k = +pr.dataset.ph; return showTip(e, `<div class="tm">${String(k).padStart(2,"0")}:00 ${tzl}, all weekdays</div><b>${fmtH(hourH[k])}</b> session hours (${Math.round(100*hourH[k]/totH)}% of the week)`); }
+    const el = e.target.closest(".cell"); if (!el) return hideTip();
+    const c = cells[+el.dataset.d][+el.dataset.h], hh = +el.dataset.h;
+    showTip(e, `<div class="tm">${WD[+el.dataset.d]} ${String(hh).padStart(2,"0")}:00 to ${String((hh+1)%24).padStart(2,"0")}:00 ${tzl}</div>
+      <b>${c.avg.toFixed(2)}</b> simultaneous on average<br>Peak <b>${c.peak}</b> at once<br>${fmtInt(c.starts)} session starts<br>${fmtH(c.occ/HOUR)} session hours over ${c.hours} such hours`);
+  };
+  $("#heat").onmouseleave = hideTip;
+  return {cells, max};
+}
+
+/* ---------- render: peak box ---------- */
+function renderPeaks(conc, heat){
+  const slots = [];
+  heat.cells.forEach((r,d) => r.forEach((c,h) => slots.push({d,h,avg:c.avg,peak:c.peak,starts:c.starts})));
+  slots.sort((a,b) => b.avg - a.avg);
+  const top = slots.filter(s => s.avg > 0).slice(0,5);
+  const byDay = WD.map((_,d) => heat.cells[d].reduce((a,c) => a + c.occ, 0));
+  const busiestDay = byDay.indexOf(Math.max(...byDay));
+  $("#peakbox").innerHTML = `
+    <div class="minilabel">Most at once</div>
+    <div style="display:flex;align-items:baseline;gap:10px;margin:4px 0 2px"><span class="bigfig">${conc.peak}</span><span style="color:var(--ink-2)">simultaneous sessions</span></div>
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px">${conc.peakAt ? esc(fmtWhen(conc.peakAt, state.tz)) : "no sessions in this period"}</div>
+    <div class="minilabel" style="margin-bottom:2px">Busiest hours of the week</div>
+    <div class="peaks">${top.length ? top.map((s,i) => `<div class="peak"><span class="w">${i+1}. ${WD[s.d]} ${String(s.h).padStart(2,"0")}:00</span><span class="n">${s.avg.toFixed(2)}</span><span class="x">avg simultaneous, peak ${s.peak}, ${s.starts} starts</span></div>`).join("") : `<div class="empty">No sessions</div>`}</div>
+    <div style="font-size:12.5px;color:var(--ink-2);margin-top:10px">Busiest weekday overall: <b>${byDay[busiestDay] ? WD[busiestDay] : "none"}</b></div>`;
+}
+
+/* ---------- render: daily trend ---------- */
+function renderTrend(sess, conc, w0){
+  const tz = state.tz;
+  const days = []; const idx = new Map();
+  for (let t = w0; t <= SNAP; t += HOUR){
+    const ymd = parts(t, tz).ymd;
+    if (!idx.has(ymd)){ idx.set(ymd, days.length); days.push({ymd, by:new Array(DATA.orgs.length).fill(0), peak:0}); }
+  }
+  for (const s of sess){
+    if (s[5] === 2) continue;
+    const a = Math.max(s[3], w0), b = s[4];
+    for (let hb = Math.floor(a/HOUR); hb*HOUR < b; hb++){
+      const lo = Math.max(a, hb*HOUR), hi = Math.min(b, (hb+1)*HOUR);
+      if (hi <= lo) continue;
+      const di = idx.get(parts(hb*HOUR, tz).ymd); if (di == null) continue;
+      days[di].by[s[0]] += (hi-lo)/HOUR;
+    }
+  }
+  for (const [hb, pk] of conc.peakB){ const di = idx.get(parts(hb*HOUR, tz).ymd); if (di != null && days[di].peak < pk) days[di].peak = pk; }
+  const W = 1100, H = 240, L = 40, R = 34, T = 10, B = 26;
+  const iw = W-L-R, ih = H-T-B, n = days.length || 1, bw = iw/n;
+  const maxH = Math.max(1, ...days.map(d => d.by.reduce((a,b)=>a+b,0)));
+  const maxP = Math.max(1, ...days.map(d => d.peak));
+  const niceH = niceMax(maxH), niceP = Math.max(2, Math.ceil(maxP));
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Session hours per day">`;
+  for (let i = 0; i <= 4; i++){
+    const y = T + ih - ih*i/4;
+    svg += `<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="#eeeef4"/><text x="${L-6}" y="${y+3}" text-anchor="end">${fmtH(niceH*i/4)}h</text>`;
+    svg += `<text x="${W-R+6}" y="${y+3}">${(niceP*i/4).toFixed(niceP < 8 ? 1 : 0)}</text>`;
+  }
+  const order = DATA.orgs.map(o => o.i);
+  days.forEach((d,i) => {
+    let y = T + ih;
+    const x = L + i*bw + Math.min(1, bw*.12);
+    const w = Math.max(1, bw - Math.min(2, bw*.24));
+    order.forEach(oi => {
+      const v = d.by[oi]; if (!v) return;
+      const hgt = ih * v / niceH; y -= hgt;
+      svg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(.5,hgt).toFixed(1)}" fill="${ORG_HEX[oi%5]}" data-i="${i}"/>`;
+    });
+    svg += `<rect x="${(L+i*bw).toFixed(1)}" y="${T}" width="${bw.toFixed(1)}" height="${ih}" fill="transparent" data-i="${i}" class="hit"/>`;
+  });
+  days.forEach((d,i) => { if (d.peak) svg += `<circle cx="${(L + i*bw + bw/2).toFixed(1)}" cy="${(T + ih - ih*d.peak/niceP).toFixed(1)}" r="${Math.max(1.6, Math.min(3, bw*.35)).toFixed(1)}" fill="#16162a" opacity=".55" pointer-events="none"/>`; });
+  const step = Math.max(1, Math.ceil(n/12));
+  days.forEach((d,i) => { if (i % step === 0){ const [y,m,dd] = d.ymd.split("-"); svg += `<text x="${(L+i*bw+bw/2).toFixed(1)}" y="${H-8}" text-anchor="middle">${dd}.${m}.</text>`; } });
+  svg += `<text x="${L-6}" y="${T-6}" text-anchor="end" style="font-size:9px">hours</text><text x="${W-R+6}" y="${T-6}" style="font-size:9px">peak</text></svg>`;
+  $("#trend").innerHTML = svg;
+  $("#trend-legend").innerHTML = DATA.orgs.filter(o => state.org==="all" || o.i===+state.org).map(o => `<span><i style="background:${ORG_HEX[o.i%5]}"></i>${esc(o.name)}</span>`).join("") + `<span><i style="background:#16162a;opacity:.55;border-radius:50%"></i>Peak simultaneous</span>`;
+  const svgEl = $("#trend svg");
+  svgEl.onmousemove = e => {
+    const r = e.target.closest("[data-i]"); if (!r) return hideTip();
+    const d = days[+r.dataset.i], tot = d.by.reduce((a,b)=>a+b,0);
+    const rows = DATA.orgs.filter(o => d.by[o.i] > 0).map(o => `<span style="color:${ORG_HEX[o.i%5]}">&#9632;</span> ${esc(o.name)} ${fmtH(d.by[o.i])}h`).join("<br>");
+    showTip(e, `<div class="tm">${d.ymd}</div><b>${fmtH(tot)}</b> session hours, peak <b>${d.peak}</b> at once${rows ? "<br>"+rows : ""}`);
+  };
+  svgEl.onmouseleave = hideTip;
+}
+function niceMax(v){ const p = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1,1.5,2,2.5,3,4,5,6,8,10]) if (m*p >= v) return m*p; return 10*p; }
+
+/* ---------- tables ---------- */
+function sortable(id, key, cols, rows, limit){
+  const [sk, dir] = state.sort[key];
+  const c = cols.find(c => c.k === sk) || cols[0];
+  rows.sort((a,b) => { const x = a[c.k], y = b[c.k]; return (typeof x === "string" ? x.localeCompare(y) : (x - y)) * dir; });
+  const shown = limit ? rows.slice(0, limit) : rows;
+  const t = $(id);
+  t.innerHTML = `<thead><tr>${cols.map(col => `<th data-k="${col.k}" class="${col.num?"num":""}" ${col.k===sk?`aria-sort="${dir<0?"descending":"ascending"}"`:""}>${col.l}</th>`).join("")}</tr></thead>
+    <tbody>${shown.length ? shown.map(r => `<tr class="${r._click!=null?"click":""}" ${r._click!=null?`data-click="${r._click}"`:""}>${cols.map(col => `<td class="${col.num?"num":""}">${col.f ? col.f(r) : esc(r[col.k])}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${cols.length}"><div class="empty">Nothing in this period</div></td></tr>`}</tbody>`;
+  t.querySelector("thead").onclick = e => {
+    const th = e.target.closest("th"); if (!th) return;
+    const k = th.dataset.k; state.sort[key] = [k, state.sort[key][0] === k ? -state.sort[key][1] : -1]; render();
+  };
+  return rows.length;
+}
+const bar = (v, max, txt, color) => `<div class="barcell"><span>${txt}</span><span class="track"><span class="fill" style="width:${max ? Math.max(2, 100*v/max) : 0}%;${color?`background:${color}`:""}"></span></span></div>`;
+
+function renderOrgs(sessAllOrgs, w0){
+  const rows = DATA.orgs.map(o => {
+    const s = sessAllOrgs.filter(x => x[0] === o.i);
+    const ok = s.filter(x => x[5] !== 2);
+    const secs = ok.reduce((a,x) => a + clipDur(x,w0), 0);
+    const att = s.filter(x => x[3] >= w0).length, fail = s.filter(x => x[5] === 2).length;
+    const machines = DATA.machines.filter(m => m.org === o.i);
+    return {_click:o.i, name:o.name, i:o.i, hours:secs/HOUR, sessions:ok.length, people:new Set(ok.map(x=>x[1])).size,
+      mused:new Set(ok.map(x=>x[2])).size, mtotal:machines.length, online:machines.filter(m=>m.online).length,
+      avg: ok.length ? secs/ok.length : 0, success: att ? 100*(1-fail/att) : null, relays:o.relays};
+  });
+  const maxH = Math.max(...rows.map(r => r.hours), 0);
+  const total = rows.reduce((a,r) => a + r.hours, 0);
+  sortable("#t-orgs","orgs",[
+    {k:"name", l:"Organization", f:r => `<i class="dotc" style="background:${ORG_HEX[r.i%5]};border-radius:2px"></i>${esc(r.name)}${state.org===String(r.i)?' <span class="tag">filtered</span>':""}`},
+    {k:"hours", l:"Hours", num:1, f:r => bar(r.hours, maxH, `${fmtH(r.hours)} <span style="color:var(--muted)">${total?Math.round(100*r.hours/total):0}%</span>`, ORG_HEX[r.i%5])},
+    {k:"sessions", l:"Sessions", num:1, f:r => fmtInt(r.sessions)},
+    {k:"people", l:"People", num:1, f:r => fmtInt(r.people)},
+    {k:"mused", l:"Machines used", num:1, f:r => fmtInt(r.mused)},
+    {k:"mtotal", l:"Enrolled", num:1, f:r => `${r.mtotal} <span style="color:var(--muted)">(${r.online} on)</span>`},
+    {k:"avg", l:"Avg session", num:1, f:r => fmtDur(r.avg)},
+    {k:"success", l:"Success", num:1, f:r => r.success==null ? "–" : `<span class="tag ${r.success>=97?"on":r.success>=90?"warn":"bad"}">${r.success.toFixed(1)}%</span>`},
+  ], rows);
+  $("#t-orgs tbody").onclick = e => { const tr = e.target.closest("tr[data-click]"); if (!tr) return;
+    state.org = state.org === tr.dataset.click ? "all" : tr.dataset.click; localStorage.setItem("pud.org", state.org); render(); };
+}
+
+function renderLen(sess, w0){
+  const B = [[0,60,"< 1 min"],[60,300,"1–5 min"],[300,900,"5–15 min"],[900,3600,"15–60 min"],[3600,7200,"1–2 h"],[7200,14400,"2–4 h"],[14400,28800,"4–8 h"],[28800,Infinity,"8 h +"]];
+  const ok = sess.filter(s => s[5] !== 2 && s[3] >= w0);
+  const cnt = B.map(() => 0), hrs = B.map(() => 0);
+  ok.forEach(s => { const d = s[4]-s[3]; const i = B.findIndex(b => d >= b[0] && d < b[1]); cnt[i]++; hrs[i] += d/HOUR; });
+  const tot = hrs.reduce((a,b)=>a+b,0), maxC = Math.max(1, ...cnt);
+  $("#lenhist").innerHTML = ok.length ? B.map((b,i) => `
+    <div class="vrow" style="grid-template-columns:76px 1fr 112px">
+      <span class="vn">${b[2]}</span>
+      <span class="vt"><span style="width:${100*cnt[i]/maxC}%;background:var(--brand)"></span></span>
+      <span class="vc">${fmtInt(cnt[i])} <span style="color:var(--muted)">· ${tot ? (100*hrs[i]/tot).toFixed(0) : 0}% of hours</span></span>
+    </div>`).join("") + `<div style="font-size:12.5px;color:var(--ink-2);margin-top:10px">Median ${fmtDur(median(ok.map(s=>s[4]-s[3])))}, longest ${fmtDur(Math.max(...ok.map(s=>s[4]-s[3])))}</div>`
+    : `<div class="empty">No sessions in this period</div>`;
+}
+
+function renderPeople(sess, w0){
+  const by = new Map();
+  for (const s of sess){
+    if (!by.has(s[1])) by.set(s[1], {name:s[1], orgs:new Map(), secs:0, sessions:0, durs:[], last:0, machines:new Set(), failed:0});
+    const p = by.get(s[1]);
+    if (s[5] === 2){ p.failed++; continue; }
+    const d = clipDur(s,w0); p.secs += d; p.sessions++; p.durs.push(s[4]-s[3]); p.last = Math.max(p.last, s[4]); p.machines.add(s[2]);
+    p.orgs.set(s[0], (p.orgs.get(s[0])||0) + d);
+  }
+  const rows = [...by.values()].filter(p => p.sessions).map(p => {
+    const main = [...p.orgs.entries()].sort((a,b)=>b[1]-a[1])[0];
+    return {name:p.name, org: main ? DATA.orgs[main[0]].name : "", oi: main ? main[0] : 0, hours:p.secs/HOUR, sessions:p.sessions,
+      med: median(p.durs), last:p.last, machines:p.machines.size};
+  });
+  const maxH = Math.max(0, ...rows.map(r => r.hours));
+  const n = sortable("#t-people","people",[
+    {k:"name", l:"Person", f:r => `<b style="font-weight:600">${esc(r.name)}</b>`},
+    {k:"org", l:"Main org", f:r => `<i class="dotc" style="background:${ORG_HEX[r.oi%5]};border-radius:2px"></i>${esc(r.org)}`},
+    {k:"hours", l:"Hours", num:1, f:r => bar(r.hours, maxH, fmtH(r.hours))},
+    {k:"sessions", l:"Sessions", num:1, f:r => fmtInt(r.sessions)},
+    {k:"med", l:"Median", num:1, f:r => fmtDur(r.med)},
+    {k:"machines", l:"Machines", num:1},
+    {k:"last", l:"Last seen", num:1, f:r => ago(r.last)},
+  ], rows, state.peopleAll ? 0 : 8);
+  const btn = $("#more-people"); btn.hidden = n <= 8; btn.textContent = state.peopleAll ? "Show top 8" : `Show all ${n}`;
+}
+
+function renderMachines(sess, w0){
+  const winH = (SNAP - w0)/HOUR;
+  const use = new Map();
+  for (const s of sess){ if (s[5] === 2) continue; const u = use.get(s[2]) || {secs:0, n:0, last:0, people:new Set()}; u.secs += clipDur(s,w0); u.n++; u.last = Math.max(u.last, s[4]); u.people.add(s[1]); use.set(s[2], u); }
+  const known = new Set(DATA.machines.map(m => m.id));
+  const removed = new Map();
+  for (const s of sess){ if (s[5] !== 2 && !known.has(s[2]) && !removed.has(s[2])) removed.set(s[2], {id:s[2], org:s[0], online:false, assign:"removed", version:null}); }
+  const rows = [...DATA.machines, ...removed.values()].filter(m => state.org === "all" || m.org === +state.org).map(m => {
+    const u = use.get(m.id) || {secs:0, n:0, last:0, people:new Set()};
+    return {id:m.id, oi:m.org, online:m.online?1:0, assign:m.assign, version:m.version||"", hours:u.secs/HOUR, util: winH ? 100*u.secs/HOUR/winH : 0, sessions:u.n, last:u.last, people:u.people.size};
+  });
+  const maxU = Math.max(0, ...rows.map(r => r.util));
+  const n = sortable("#t-mach","mach",[
+    {k:"id", l:"Machine", f:r => `<i class="dotc" style="background:${r.online?"var(--green)":"#c9c9d6"}" title="${r.online?"online":"offline"}"></i><b style="font-weight:600">${esc(r.id)}</b>`},
+    {k:"oi", l:"Org", f:r => `<i class="dotc" style="background:${ORG_HEX[r.oi%5]};border-radius:2px"></i>${esc(DATA.orgs[r.oi].name)}`},
+    {k:"assign", l:"Access", f:r => `<span class="tag ${r.assign==="removed"?"off":""}">${r.assign}</span>`},
+    {k:"version", l:"Version", f:r => `<span style="font-family:var(--mono);font-size:12px">${esc(r.version || "–")}</span>`},
+    {k:"util", l:"Utilization", num:1, f:r => bar(r.util, maxU, r.util >= 1 ? r.util.toFixed(1)+"%" : r.util > 0 ? r.util.toFixed(2)+"%" : "0%")},
+    {k:"hours", l:"Hours", num:1, f:r => fmtH(r.hours)},
+    {k:"last", l:"Last used", num:1, f:r => r.last ? ago(r.last) : `<span style="color:var(--muted)">never</span>`},
+  ], rows, state.machAll ? 0 : 10);
+  const btn = $("#more-mach"); btn.hidden = n <= 10; btn.textContent = state.machAll ? "Show top 10" : `Show all ${n}`;
+}
+
+function semverCmp(a,b){ const x = (a||"0").split(".").map(Number), y = (b||"0").split(".").map(Number); for (let i=0;i<3;i++){ if ((x[i]||0)!==(y[i]||0)) return (y[i]||0)-(x[i]||0); } return 0; }
+function renderFleet(){
+  const ms = DATA.machines.filter(m => state.org === "all" || m.org === +state.org);
+  const on = ms.filter(m => m.online).length;
+  const cnt = (f) => { const c = {}; ms.forEach(m => { const k = f(m); c[k] = (c[k]||0)+1; }); return Object.entries(c).sort((a,b)=>b[1]-a[1]); };
+  const assign = cnt(m => m.assign), os = cnt(m => m.os), ch = cnt(m => m.channel);
+  const latest = ms.map(m => m.version).filter(Boolean).sort(semverCmp)[0];
+  const onLatest = ms.filter(m => m.version === latest).length;
+  const pal = {user:"#6464fe", group:"#18a999", unassigned:"#c9c9d6", Windows:"#6464fe", Linux:"#f0a020", release:"#6464fe", "test build":"#e35d9c"};
+  const splitBlock = (title, arr) => `<div><div class="minilabel">${title}</div><div class="split">${arr.map(([k,v]) => `<span style="width:${100*v/ms.length}%;background:${pal[k]||"#7a8599"}"></span>`).join("")}</div><div class="splitl">${arr.map(([k,v]) => `<span><i class="dotc" style="background:${pal[k]||"#7a8599"};border-radius:2px"></i>${esc(k)} ${v}</span>`).join("")}</div></div>`;
+  $("#fleetstats").innerHTML = ms.length ? `
+    <div><div class="minilabel">Online now</div><div style="font-family:var(--display);font-weight:700;font-size:24px">${on}<span style="font-size:14px;color:var(--muted)">/${ms.length}</span></div></div>
+    <div><div class="minilabel">On ${esc(latest||"–")} (newest)</div><div style="font-family:var(--display);font-weight:700;font-size:24px">${onLatest}<span style="font-size:14px;color:var(--muted)">/${ms.length}</span></div></div>
+    ${splitBlock("Access", assign)}
+    ${splitBlock("OS", os)}
+    ${splitBlock("Update channel", ch)}` : `<div class="empty" style="grid-column:1/-1">No machines</div>`;
+  const vers = {}; ms.forEach(m => { const v = m.version || "unknown"; vers[v] = vers[v] || {on:0, off:0}; vers[v][m.online?"on":"off"]++; });
+  const vlist = Object.entries(vers).sort((a,b) => semverCmp(a[0],b[0]));
+  const maxV = Math.max(1, ...vlist.map(([,v]) => v.on+v.off));
+  $("#versions").innerHTML = vlist.map(([v,c]) => `<div class="vrow"><span class="vn">${esc(v)}</span><span class="vt" style="width:${100*(c.on+c.off)/maxV}%"><span style="width:${100*c.on/(c.on+c.off)}%;background:var(--green)"></span><span style="width:${100*c.off/(c.on+c.off)}%;background:#c9c9d6"></span></span><span class="vc">${c.on} on · ${c.off} off</span></div>`).join("")
+    + `<div class="splitl" style="margin-top:8px"><span><i class="dotc" style="background:var(--green)"></i>online</span><span><i class="dotc" style="background:#c9c9d6"></i>offline</span></div>`;
+}
+
+function renderRelays(){
+  const rs = DATA.relays.filter(r => state.org === "all" || r.org === +state.org);
+  const on = rs.filter(r => r.online).length;
+  const rep = rs.map(r => r.reported_at).filter(Boolean).sort().pop();
+  $("#relay-desc").textContent = rs.length ? `${on} of ${rs.length} relays online. Live stats as last reported by each relay${rep ? ", newest " + fmtWhen(Date.parse(rep)/1000, state.tz) : ""}.` : "No relays in this organization.";
+  const meter = (l, v) => `<div class="meter"><span>${l}</span><span class="tr"><span style="width:${v==null?0:Math.min(100,v)}%;background:${v>85?"var(--red)":v>65?"var(--amber)":"var(--brand)"}"></span></span><span>${v==null?"–":v.toFixed(v<10?1:0)+"%"}</span></div>`;
+  rs.sort((a,b) => b.online - a.online || a.name.localeCompare(b.name));
+  $("#relays").innerHTML = rs.map(r => {
+    const st = r.maintenance ? `<span class="tag warn">maintenance</span>` : r.online ? `<span class="tag on">online</span>` : `<span class="tag off">offline</span>`;
+    const body = r.online && r.reported_at ? `
+      ${meter("CPU", r.cpu)}${meter("Memory", r.mem)}${meter("Disk", r.disk)}
+      <div class="io"><span>&#8595; ${fmtBps(r.client_bps)}</span><span>&#8593; ${fmtBps(r.host_bps)}</span><span>${r.active ?? 0} live</span></div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:6px">${esc(r.version ? (String(r.version).startsWith("v") ? r.version : "v"+r.version) : "version ?")} · up ${fmtDur(r.uptime||0)}</div>`
+      : `<div style="font-size:12px;color:var(--muted)">No live stats while offline.</div>`;
+    return `<div class="relay ${r.online?"":"off"}"><div class="t"><span class="nm">${esc(r.name)}</span>${st}</div>
+      <div class="meta"><i class="dotc" style="background:${ORG_HEX[r.org%5]};border-radius:2px"></i>${esc(DATA.orgs[r.org].name)}${r.location ? " · " + esc(r.location) : ""}</div>${body}</div>`;
+  }).join("") || `<div class="empty">No relays</div>`;
+}
+
+/* ---------- tooltip ---------- */
+const tip = $("#tip");
+function showTip(e, html){ tip.innerHTML = html; tip.style.opacity = 1;
+  const pad = 14, r = tip.getBoundingClientRect();
+  let x = e.clientX + pad, y = e.clientY + pad;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - pad;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - pad;
+  tip.style.left = x + "px"; tip.style.top = y + "px"; }
+function hideTip(){ tip.style.opacity = 0; }
+
+
+/* ================= savings tab ================= */
+const SV = {
+  rate: +(localStorage.getItem("pud.rate") ?? 0.20),
+  cap: +(localStorage.getItem("pud.cap") ?? 20),
+  maxLen: +(localStorage.getItem("pud.maxLen") ?? 8),
+  disc: +(localStorage.getItem("pud.disc") ?? 0),
+  ws: +(localStorage.getItem("pud.ws") ?? 0),
+  seat: +(localStorage.getItem("pud.seat") ?? 30),
+};
+const POOL_UTIL = 5;        // % of all hours in 30 days below which a workstation counts as rarely used
+const WIN30 = 30*DAY;
+const usd = (v, dec) => "$" + (Math.abs(v) >= 1000 || dec === 0 ? Math.round(v).toLocaleString("en-US") : v.toFixed(dec ?? 2));
+const usd0 = v => "$" + Math.round(v).toLocaleString("en-US");
+
+function monthList(){
+  const out = []; const a = new Date(FIRST*1000), b = new Date(SNAP*1000);
+  let y = a.getUTCFullYear(), m = a.getUTCMonth();
+  while (y < b.getUTCFullYear() || (y === b.getUTCFullYear() && m <= b.getUTCMonth())){
+    const start = Date.UTC(y, m, 1)/1000, end = Date.UTC(y, m+1, 1)/1000;
+    out.push({key: y + "-" + String(m+1).padStart(2,"0"), start, end, complete: FIRST <= start + DAY && end <= SNAP,
+      label: new Date(start*1000).toLocaleString("en-US",{month:"short", timeZone:"UTC"}) + " " + String(y).slice(2),
+      full: new Date(start*1000).toLocaleString("en-US",{month:"long", year:"numeric", timeZone:"UTC"})});
+    if (++m > 11){ m = 0; y++; }
+  }
+  return out;
+}
+// person-hours per month; trimSec caps each session's length
+function userMonths(sess, months, trimSec){
+  const um = months.map(() => new Map());
+  for (const s of sess){
+    if (s[5] === 2) continue;
+    const a = s[3], b = Math.min(s[4], s[3] + trimSec);
+    if (b <= a) continue;
+    for (let i = 0; i < months.length; i++){
+      const mo = months[i]; const lo = Math.max(a, mo.start), hi = Math.min(b, mo.end);
+      if (hi > lo) um[i].set(s[1], (um[i].get(s[1]) || 0) + (hi - lo)/HOUR);
+    }
+  }
+  return um;
+}
+const userCost = h => Math.min(h * SV.rate, SV.cap);
+function bills(um){ return um.map(m => { let c = 0, capped = 0, h = 0; for (const v of m.values()){ c += userCost(v); h += v; if (v*SV.rate >= SV.cap) capped++; } return {cost:c, users:m.size, hours:h, capped}; }); }
+function commitPlan(monthly){
+  // monthly: costs of complete months. pay C*(1-d) + overage at list
+  const d = SV.disc/100; if (!monthly.length) return {best:0, annual:0, payg:0, curve:[]};
+  const payg = 12 * monthly.reduce((a,b)=>a+b,0)/monthly.length;
+  const maxB = Math.max(...monthly), steps = 60, curve = [];
+  let best = 0, bestA = payg;
+  for (let i = 0; i <= steps; i++){
+    const C = maxB * i/steps;
+    const ann = 12 * monthly.reduce((a,B) => a + C*(1-d) + Math.max(0, B - C), 0)/monthly.length;
+    curve.push([C, ann]);
+    if (ann < bestA - 0.005){ bestA = ann; best = C; }
+  }
+  return {best, annual:bestA, payg, curve};
+}
+
+function savingsModel(){
+  const org = state.org;
+  const sess = DATA.sessions.filter(s => org === "all" || s[0] === +org);
+  const months = monthList();
+  const umCur = userMonths(sess, months, Infinity);
+  const umOpt = userMonths(sess, months, SV.maxLen*HOUR);
+  const bCur = bills(umCur), bOpt = bills(umOpt);
+  const full = months.map((m,i) => i).filter(i => months[i].complete);
+  const avg = (arr) => full.length ? full.reduce((a,i) => a + arr[i].cost, 0)/full.length : 0;
+  const curMonthly = avg(bCur), optMonthly = avg(bOpt);
+  const longSave = 12*(curMonthly - optMonthly);
+  const plan = commitPlan(full.map(i => bOpt[i].cost));
+  const commitSave = plan.payg - plan.annual;
+  const lastFull = full.length ? full[full.length-1] : null;
+  // long sessions detail
+  const longs = sess.filter(s => s[5] !== 2 && s[4]-s[3] > SV.maxLen*HOUR).sort((a,b) => (b[4]-b[3])-(a[4]-a[3]));
+  const longHrs = longs.reduce((a,s) => a + (s[4]-s[3])/HOUR, 0);
+  const trimmedHrs = longs.reduce((a,s) => a + (s[4]-s[3]-SV.maxLen*HOUR)/HOUR, 0);
+  const allHrs = sess.reduce((a,s) => a + (s[5]===2 ? 0 : (s[4]-s[3])/HOUR), 0);
+  const pastMidnight = longs.filter(s => parts(s[3], state.tz).ymd !== parts(s[4], state.tz).ymd).length;
+  // trimmed hours that fell on users already at the cap
+  let freeTrim = 0;
+  full.forEach(i => { for (const [p, h] of umCur[i]){ const o = umOpt[i].get(p) || 0; if (h > o && o*SV.rate >= SV.cap) freeTrim += h - o; else if (h > o && h*SV.rate > SV.cap) freeTrim += h - SV.cap/SV.rate; } });
+  // pooling + idle seats: last 30 days
+  const w0 = SNAP - WIN30;
+  const s30 = sess.filter(s => s[5] !== 2 && s[4] > w0);
+  const orgs = DATA.orgs.filter(o => org === "all" || o.i === +org);
+  const pool = orgs.map(o => {
+    const ms = DATA.machines.filter(m => m.org === o.i);
+    const use = new Map(); s30.filter(s => s[0] === o.i).forEach(s => use.set(s[2], (use.get(s[2])||0) + (s[4] - Math.max(s[3], w0))));
+    const rows = ms.map(m => ({...m, util: 100*(use.get(m.id)||0)/WIN30, hrs:(use.get(m.id)||0)/HOUR}));
+    // offline machines with no sessions in 30 days are probably retired: list them for cleanup, don't count them as savings
+    const retired = rows.filter(r => !r.online && r.hrs === 0);
+    const cand = rows.filter(r => r.assign !== "group" && r.util < POOL_UTIL && !(r.hrs === 0 && !r.online));
+    const candIds = new Set(cand.map(r => r.id));
+    // peak concurrency on the candidate machines
+    const ev = []; s30.filter(s => s[0] === o.i && candIds.has(s[2])).forEach(s => { ev.push([Math.max(s[3], w0), 1], [s[4], -1]); });
+    ev.sort((a,b) => a[0]-b[0] || a[1]-b[1]); let cur = 0, peak = 0; ev.forEach(e => { cur += e[1]; peak = Math.max(peak, cur); });
+    const needed = peak ? peak + 1 : 0;
+    return {org:o, enrolled:ms.length, cand, peak, needed, freed: Math.max(0, cand.length - needed), unused: cand.filter(r => r.hrs === 0).length, retired: retired.length,
+            busy: rows.filter(r => r.util >= POOL_UTIL).length};
+  });
+  const freed = pool.reduce((a,p) => a + p.freed, 0);
+  const poolSave = 12 * freed * (SV.ws || 0);
+  const active30 = new Set(s30.map(s => s[1]));
+  const idle = []; const seen = new Set();
+  orgs.forEach(o => o.members.forEach(m => { const k = m.name; if (!active30.has(k) && !seen.has(k)){ seen.add(k); idle.push({...m, org:o.name}); } }));
+  const memberCount = new Set(orgs.flatMap(o => o.members.map(m => m.name))).size;
+  const effPrice = lastFull != null && bCur[lastFull].users ? bCur[lastFull].cost / bCur[lastFull].users : 0;
+  return {months, bCur, bOpt, full, curMonthly, optMonthly, longSave, plan, commitSave, lastFull, longs, longHrs, trimmedHrs, allHrs, pastMidnight, freeTrim,
+          pool, freed, poolSave, idle, memberCount, active30:active30.size, effPrice};
+}
+
+function renderSavings(){
+  const M = savingsModel();
+  const lf = M.lastFull;
+  const totalLicense = Math.max(0, M.longSave) + Math.max(0, M.commitSave);
+  const optAnnual = Math.max(0, M.plan.annual);
+  // header KPIs
+  const K = [
+    [usd(M.curMonthly), "Average month today", M.full.length ? `${M.months[M.full[0]].label} to ${M.months[M.full[M.full.length-1]].label}` : "no full month yet"],
+    [usd(M.optMonthly - M.commitSave/12 > 0 ? M.optMonthly - M.commitSave/12 : 0), "Average month after", "suggestions applied"],
+    [usd0(totalLicense), "License saving / year", totalLicense ? `${Math.round(100*totalLicense/Math.max(1e-9, 12*M.curMonthly))}% of today's bill` : "nothing to trim at these settings"],
+    [M.poolSave ? usd0(M.poolSave) : M.freed, M.poolSave ? "Hardware per year" : "Machines to free", M.poolSave ? `${M.freed} workstations freed` : "add a workstation cost"],
+    [lf != null ? usd(M.effPrice) : "–", "Per active user", lf != null ? `${M.months[lf].full}, vs ${usd0(SV.cap)} cap` : ""],
+    [`${M.active30}<small>/${M.memberCount}</small>`, "Members active", "in the last 30 days"],
+    [usd0(M.idle.length * SV.seat), "Idle seats, unbilled", `${M.idle.length} members, $0 on Phaze`],
+  ];
+  const curY = 12*M.curMonthly, aftY = Math.max(0, curY - totalLicense);
+  const pct = curY ? Math.round(100*totalLicense/curY) : 0;
+  const mx = Math.max(curY, 1e-9);
+  $("#hero").innerHTML = `
+    <div>
+      <div class="eyebrow">You could save on Phaze licenses</div>
+      <div class="huge">${usd0(totalLicense)}<small>a year</small></div>
+      <div class="sub2">${totalLicense >= 1 ? `That's <b>${pct}%</b> of your Phaze bill, from changing how sessions are used${M.commitSave >= 1 ? " and committing to a monthly amount" : ""}.` : "Your usage is already lean at these settings."}${M.poolSave >= 1 ? ` Plus <b>${usd0(M.poolSave)}</b> a year in hardware.` : ""}</div>
+    </div>
+    <div>
+      <div class="eyebrow">Your Phaze bill per year</div>
+      <div class="ba"><span class="bl">Today</span><span class="bt"><span style="width:${100*curY/mx}%;background:rgba(255,255,255,.35)"></span></span><span class="bv">${usd0(curY)}</span></div>
+      <div class="ba"><span class="bl">After</span><span class="bt"><span style="width:${100*aftY/mx}%;background:#5ee3a6"></span></span><span class="bv" style="color:#5ee3a6">${usd0(aftY)}</span></div>
+      <div class="sub2" style="font-size:12.5px;margin-top:10px;color:rgba(255,255,255,.6)">Average of ${M.full.length} complete month${M.full.length===1?"":"s"}${M.full.length ? `, ${M.months[M.full[0]].label} to ${M.months[M.full[M.full.length-1]].label}` : ""}, times 12</div>
+    </div>
+    <div class="mini3">
+      <div class="row"><span class="k">You pay per active user<small>${lf != null ? M.months[lf].full : ""}, cap is ${usd0(SV.cap)}</small></span><span class="val">${lf != null ? usd(M.effPrice) : "–"}</span></div>
+      <div class="row"><span class="k">Workstations you could free<small>by pooling rarely used machines</small></span><span class="val">${M.freed}</span></div>
+      <div class="row"><span class="k">Idle seats you don't pay for<small>${M.idle.length} members, vs ${usd0(SV.seat)}/seat elsewhere</small></span><span class="val g">${usd0(12*M.idle.length*SV.seat)}<span style="font-size:12px;color:rgba(255,255,255,.6)">/yr</span></span></div>
+    </div>`;
+
+  renderWaterfall(M, curY, aftY);
+  $("#assume-vals").innerHTML = [`${usd(SV.rate)}/h`, `${usd0(SV.cap)} cap`, `end at ${SV.maxLen} h`, `${SV.disc}% commit`, SV.ws ? `${usd0(SV.ws)}/workstation` : "no workstation cost", `${usd0(SV.seat)}/seat compare`].map(v => `<span class="chip">${v}</span>`).join("");
+
+  renderBillChart(M);
+  const capH = SV.rate ? SV.cap/SV.rate : 0;
+  $("#cap-hint").textContent = SV.rate ? `Reached at ${Math.round(capH)} hours a month` : "";
+  $("#max-v").textContent = SV.maxLen + " hours";
+  $("#bill-desc").innerHTML = `Pale bars are what you pay today. Purple bars are the same months with sessions ended after ${SV.maxLen} hours${SV.disc ? ` and a ${SV.disc}% commit` : ""}. Each person costs ${usd(SV.rate)} an hour, never more than ${usd0(SV.cap)} a month.`;
+
+  const cards = [];
+  // 1. long sessions
+  const longPct = M.allHrs ? Math.round(100*M.longHrs/M.allHrs) : 0;
+  cards.push({save:M.longSave, html: card("End sessions when the work ends",
+    M.longs.length ? `${M.longs.length} sessions ran longer than ${SV.maxLen} hours. Together they hold ${longPct}% of all your connected hours, and ${M.pastMidnight} of them ran past midnight. A session that stays open after someone goes home is billed like work. You could save <b>${usd0(M.longSave)} a year</b> by ending those sessions at ${SV.maxLen} hours.`
+                   : `No session ran longer than ${SV.maxLen} hours. Nothing to trim here.`,
+    M.longSave, "per year",
+    `<div class="facts">
+       <div class="fact"><div class="n">${M.longs.length}</div><div class="l">sessions over ${SV.maxLen} h</div></div>
+       <div class="fact"><div class="n">${fmtH(M.trimmedHrs)}<small> h</small></div><div class="l">hours beyond ${SV.maxLen} h</div></div>
+       <div class="fact"><div class="n">${fmtH(M.freeTrim)}<small> h</small></div><div class="l">of those were free (user already at the cap)</div></div>
+     </div>
+     <table><thead><tr><th>Person</th><th>Machine</th><th>Started</th><th class="num">Length</th><th class="num">Beyond ${SV.maxLen} h</th></tr></thead><tbody>
+     ${M.longs.slice(0,6).map(s => `<tr><td><b style="font-weight:600">${esc(s[1])}</b></td><td>${esc(s[2])}</td><td>${esc(fmtWhen(s[3], state.tz))}</td><td class="num">${fmtDur(s[4]-s[3])}</td><td class="num">${fmtDur(s[4]-s[3]-SV.maxLen*HOUR)}</td></tr>`).join("") || `<tr><td colspan="5"><div class="empty">None</div></td></tr>`}
+     </tbody></table>`,
+    `<ol><li>Ask artists to click Disconnect at the end of the day, not just close the laptop lid or walk away.</li>
+       <li>Turn on Privacy Mode for the organization so a host also locks when a session ends.</li>
+       <li>Use the Connections API to list sessions open longer than ${SV.maxLen} hours and remind the owner.</li></ol>
+     <div class="callout">Hours from people already at the ${usd0(SV.cap)} cap cost nothing extra. That's why trimming ${fmtH(M.trimmedHrs)} hours saves less than ${fmtH(M.trimmedHrs)} &times; ${usd(SV.rate)}.</div>`,
+    "connections")});
+
+  // 2. commit
+  const p = M.plan;
+  cards.push({save:M.commitSave, html: card("Commit to a monthly amount",
+    !SV.disc ? `Your bill moves with usage, so it's lower in quiet months. A commit doesn't lower it unless it comes with a discount. Ask your Phaze rep what discount a commit gets you, enter it above, and this card works out the best amount to commit.`
+      : p.best > 0 ? `With a ${SV.disc}% discount, committing to <b>${usd(p.best)} a month</b> is the cheapest option for your usage. You could save <b>${usd0(M.commitSave)} a year</b> compared with paying as you go, and your budget becomes predictable.`
+      : `Even with a ${SV.disc}% discount, your usage changes too much from month to month for a commit to pay off. Paying as you go stays cheaper.`,
+    M.commitSave, "per year",
+    commitChart(M),
+    `<ol><li>We sized the commit from your complete months after the session change above, so it isn't inflated by sessions left open.</li>
+       <li>Usage above the commit is billed at the normal rate. Unused commit isn't refunded.</li>
+       <li>Look at this again after a quarter of production, when usage settles.</li></ol>`,
+    "connections")});
+
+  // 3. pooling
+  const pl = M.pool.filter(x => x.enrolled);
+  cards.push({save:M.poolSave, sortKey: M.poolSave || M.freed*0.01, html: card("Share rarely used workstations",
+    M.freed ? `${pl.reduce((a,x)=>a+x.cand.length,0)} active workstations were used less than ${POOL_UTIL}% of the time in the last 30 days. At the busiest moment, no more than ${Math.max(0,...pl.map(x=>x.peak))} of them were in use at once in any one organization. A shared pool per organization, with one spare each, needs ${pl.reduce((a,x)=>a+x.needed,0)} machines. You could free up <b>${M.freed} workstations</b>${SV.ws ? `, worth <b>${usd0(M.poolSave)} a year</b>` : ""}.`
+      : `Your workstations are well used. None can be freed without people waiting for a machine.`,
+    M.poolSave, SV.ws ? "per year" : (M.freed ? `${M.freed} machines` : ""),
+    `<table><thead><tr><th>Organization</th><th class="num">Enrolled</th><th class="num">Busy</th><th class="num">Rarely used</th><th class="num">Peak at once</th><th class="num">Pool needs</th><th class="num">Freed</th><th class="num">Offline, unused</th></tr></thead><tbody>
+     ${pl.map(x => `<tr><td><i class="dotc" style="background:${ORG_HEX[x.org.i%5]};border-radius:2px"></i>${esc(x.org.name)}</td><td class="num">${x.enrolled}</td><td class="num">${x.busy}</td><td class="num">${x.cand.length}</td><td class="num">${x.peak}</td><td class="num">${x.needed}</td><td class="num"><b>${x.freed}</b></td><td class="num" style="color:var(--muted)">${x.retired}</td></tr>`).join("")}
+     </tbody></table>
+     <div class="note">${pl.reduce((a,x)=>a+x.retired,0)} enrolled machines are offline and had no sessions in 30 days. They're probably retired already, so we left them out of the savings. Remove them in the dashboard to keep your machine list clean.</div>`,
+    `<ol><li>Create a group per team, for example "Compositing", and add the people who use these machines.</li>
+       <li>Assign the pooled machines to the group instead of to single users. Anyone in the group can then connect to a free one.</li>
+       <li>Keep one machine spare on top of your busiest moment, as we did here.</li></ol>
+     <div class="callout">Group machines can only host. People who also connect from that same machine need a machine assigned to them personally.</div>`,
+    "machines connections groups")});
+
+  // 4. idle seats
+  cards.push({save:0, sortKey:-1, html: card("Members who didn't connect: already free",
+    M.idle.length ? `${M.idle.length} of your ${M.memberCount} members didn't connect in the last 30 days. On Phaze they cost you nothing, because you only pay for hours used. On a per-seat tool at ${usd0(SV.seat)} a seat, they'd cost <b>${usd0(M.idle.length*SV.seat)} a month</b> (${usd0(12*M.idle.length*SV.seat)} a year).`
+      : `Every member connected in the last 30 days.`,
+    M.idle.length*SV.seat*12, "a year you don't pay",
+    `<table><thead><tr><th>Member</th><th>Organization</th><th>Role</th></tr></thead><tbody>
+     ${M.idle.slice(0,8).map(m => `<tr><td><b style="font-weight:600">${esc(m.name)}</b></td><td>${esc(m.org)}</td><td><span class="tag">${esc(m.role)}</span></td></tr>`).join("") || `<tr><td colspan="3"><div class="empty">None</div></td></tr>`}
+     </tbody></table>${M.idle.length > 8 ? `<div class="note">and ${M.idle.length-8} more</div>` : ""}`,
+    `<ol><li>No action needed for cost. Keep people who come back for crunch or reviews as members.</li>
+       <li>For security, remove people who have left. With SCIM on, removing them in your identity provider does it.</li>
+       <li>Admins who never connect themselves are expected here.</li></ol>`,
+    "members connections", true)});
+
+  cards.sort((a,b) => (b.sortKey ?? b.save) - (a.sortKey ?? a.save));
+  $("#suggestions").innerHTML = cards.map((c,i) => c.html.replace("__RANK__", i+1)).join("");
+  document.querySelectorAll("#tab-savings .src").forEach(el => {
+    el.innerHTML = `<span class="lbl">Source</span>` + el.dataset.src.split(" ").map(k => `<span class="chip"><span class="m">${ENDPOINTS[k][0]}</span>${ENDPOINTS[k][1]}</span>`).join("");
+  });
+  $("#sfoot").innerHTML = `Estimates from your connection history at the prices above. Bills use exact connected time per person per calendar month (UTC), capped per person, and only complete months. The current month and the first, partial month are shown but not used in averages. Workstation pooling and idle members use the last 30 days. Commit math assumes usage above the commit is billed at the normal rate. People and machines are pseudonymized.`;
+}
+
+function card(title, lead, save, unit, evidence, howto, src, neutral){
+  const big = neutral ? usd0(save) : (save > 0.5 ? usd0(save) : (typeof unit === "string" && unit.endsWith("machines") ? unit.split(" ")[0] : "$0"));
+  const showUnit = neutral ? unit : (save > 0.5 ? unit : (typeof unit === "string" && unit.endsWith("machines") ? "machines" : "saving"));
+  const muted = !neutral && !(save > 0.5) && !(typeof unit === "string" && unit.endsWith("machines"));
+  return `<section class="card span-12 sugg ${muted ? "muted" : ""}" ${neutral ? 'style="border-left-color:var(--brand)"' : ""}>
+    <div class="sg-head"><span class="rank">__RANK__</span>
+      <div><h2>${title}</h2><p class="lead">${lead}</p></div>
+      <div class="save"><div class="big ${save > 0.5 || (typeof unit==="string" && unit.endsWith("machines")) ? "" : "zero"}" ${neutral ? 'style="color:var(--brand-ink)"' : ""}>${big}</div><div class="sm">${showUnit}</div></div>
+    </div>
+    <div class="sg-body"><div class="evid"><h3>What we see in your data</h3>${evidence}</div><div class="howto"><h3>How to do it</h3>${howto}</div></div>
+    <div class="src" data-src="${src}"></div>
+  </section>`;
+}
+
+function renderWaterfall(M, curY, aftY){
+  const mx = Math.max(curY, 1e-9);
+  const rows = [];
+  rows.push({cls:"tot", l:"Your bill today", s:"per year, at your prices", from:0, to:curY, v:usd0(curY), c:"#c9c9e8"});
+  let run = curY;
+  const step = (l, s, amt) => { const a = Math.max(0, amt); rows.push({cls: a >= 1 ? "neg" : "zero", l, s, from: run - a, to: run, v: a >= 1 ? "−" + usd0(a) : "$0", c:"#1f9d6b"}); run -= a; };
+  step(`End sessions after ${SV.maxLen} h`, `${M.longs.length} long sessions trimmed`, M.longSave);
+  step("Commit to a monthly amount", SV.disc ? `${SV.disc}% discount` : "needs a discount from your rep", M.commitSave);
+  rows.push({cls:"tot", l:"Your bill after", s:"per year", from:0, to:aftY, v:usd0(aftY), c:"#6464fe"});
+  $("#waterfall").innerHTML = rows.map(r => `<div class="wfr ${r.cls}"><div class="wl">${r.l}<small>${esc(r.s)}</small></div>
+      <div class="wt"><span style="left:${100*r.from/mx}%;width:${Math.max(r.to-r.from > 0 ? 0.6 : 0, 100*(r.to-r.from)/mx)}%;background:${r.c}"></span></div>
+      <div class="wv">${r.v}</div></div>`).join("")
+    + `<div class="wfr zero" style="margin-top:6px;border-top:1px dashed var(--line);padding-top:10px"><div class="wl">Outside the license bill<small>hardware and idle seats</small></div>
+       <div style="font-size:13px;color:var(--ink-2)">${M.freed} workstation${M.freed===1?"":"s"} could be freed${SV.ws ? ` (${usd0(M.poolSave)} a year)` : ", add a workstation cost to price it"}. ${M.idle.length} idle member${M.idle.length===1?"":"s"} cost you nothing.</div><div class="wv">${M.poolSave >= 1 ? usd0(M.poolSave) : ""}</div></div>`;
+  $("#wf-desc").textContent = "Your yearly Phaze bill, step by step, if you follow the suggestions below.";
+}
+
+function renderBillChart(M){
+  const W = 1100, H = 230, L = 46, R = 10, T = 12, B = 30;
+  const iw = W-L-R, ih = H-T-B, n = M.months.length, gw = iw/n;
+  const optWithCommit = i => M.months[i].complete && SV.disc && M.plan.best > 0 ? M.plan.best*(1-SV.disc/100) + Math.max(0, M.bOpt[i].cost - M.plan.best) : M.bOpt[i].cost;
+  const maxV = niceMax(Math.max(1, ...M.bCur.map(b => b.cost)));
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Monthly bill">`;
+  for (let i = 0; i <= 4; i++){ const y = T + ih - ih*i/4; svg += `<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="#eeeef4"/><text x="${L-6}" y="${y+3}" text-anchor="end">${usd0(maxV*i/4)}</text>`; }
+  const bw = Math.min(46, gw*0.32);
+  M.months.forEach((mo,i) => {
+    const cx = L + gw*i + gw/2, c = M.bCur[i].cost, o = optWithCommit(i);
+    const hc = ih*c/maxV, ho = ih*o/maxV;
+    const pale = mo.complete ? "#c9c9e8" : "#e4e4ec", strong = mo.complete ? "#6464fe" : "#e4e4ec";
+    svg += `<rect x="${cx-bw-2}" y="${T+ih-hc}" width="${bw}" height="${Math.max(.5,hc)}" rx="3" fill="${pale}" data-m="${i}"/>`;
+    svg += `<rect x="${cx+2}" y="${T+ih-ho}" width="${bw}" height="${Math.max(.5,ho)}" rx="3" fill="${strong}" ${mo.complete?"":'stroke="#c9c9d6" stroke-dasharray="3 2"'} data-m="${i}"/>`;
+    svg += `<text x="${cx-bw/2-2}" y="${T+ih-hc-5}" text-anchor="middle" style="fill:var(--ink-2)">${usd0(c)}</text>`;
+    if (Math.abs(c-o) >= 1) svg += `<text x="${cx+bw/2+2}" y="${T+ih-ho-5}" text-anchor="middle" style="fill:${mo.complete?"#3b3bd6":"#9a9ab0"};font-weight:600">${usd0(o)}</text>`;
+    svg += `<text x="${cx}" y="${H-10}" text-anchor="middle">${mo.label}${mo.complete ? "" : " *"}</text>`;
+    svg += `<rect x="${L+gw*i}" y="${T}" width="${gw}" height="${ih}" fill="transparent" data-m="${i}"/>`;
+  });
+  svg += `</svg>`;
+  $("#billchart").innerHTML = svg;
+  const el = $("#billchart svg");
+  el.onmousemove = e => { const r = e.target.closest("[data-m]"); if (!r) return hideTip(); const i = +r.dataset.m, b = M.bCur[i], o = M.bOpt[i];
+    showTip(e, `<div class="tm">${M.months[i].label}${M.months[i].complete ? "" : " (incomplete, not in averages)"}</div>Today <b>${usd(b.cost)}</b> for ${b.users} people, ${fmtH(b.hours)} h${b.capped ? `, ${b.capped} at the cap` : ""}<br>After <b>${usd(optWithCommit(i))}</b>, ${fmtH(o.hours)} h`); };
+  el.onmouseleave = hideTip;
+}
+
+function commitChart(M){
+  const p = M.plan; if (!p.curve.length) return `<div class="empty">Not enough complete months yet</div>`;
+  const W = 560, H = 190, L = 50, R = 12, T = 12, B = 30, iw = W-L-R, ih = H-T-B;
+  const maxC = p.curve[p.curve.length-1][0] || 1;
+  const vals = p.curve.map(c => c[1]); const lo = Math.min(...vals, p.payg)*0.9, hi = Math.max(...vals, p.payg)*1.04;
+  const x = c => L + iw*c/maxC, y = v => T + ih - ih*(v-lo)/((hi-lo)||1);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Yearly cost by commit level">`;
+  for (let i = 0; i <= 3; i++){ const v = lo + (hi-lo)*i/3; svg += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#eeeef4"/><text x="${L-6}" y="${y(v)+3}" text-anchor="end">${usd0(v)}</text>`; }
+  svg += `<line x1="${L}" x2="${W-R}" y1="${y(p.payg)}" y2="${y(p.payg)}" stroke="#7a8599" stroke-dasharray="4 3"/><text x="${W-R}" y="${y(p.payg)-5}" text-anchor="end">pay as you go ${usd0(p.payg)}/yr</text>`;
+  svg += `<polyline fill="none" stroke="#6464fe" stroke-width="2" points="${p.curve.map(c => x(c[0]).toFixed(1)+","+y(c[1]).toFixed(1)).join(" ")}"/>`;
+  if (SV.disc && p.best > 0) svg += `<circle cx="${x(p.best)}" cy="${y(p.annual)}" r="5" fill="#1f9d6b"/><text x="${x(p.best)}" y="${y(p.annual)+18}" text-anchor="middle" style="fill:#1f9d6b;font-weight:600">${usd(p.best)}/mo</text>`;
+  [0, .5, 1].forEach(f => svg += `<text x="${x(maxC*f)}" y="${H-10}" text-anchor="middle">${usd0(maxC*f)}</text>`);
+  svg += `<text x="${L+iw/2}" y="${H}" text-anchor="middle" style="font-size:9px">monthly commit</text></svg>`;
+  return svg + `<div class="note">Yearly cost at each commit level, at a ${SV.disc}% discount, from ${M.full.length} complete months after the session change.</div>`;
+}
+
+function bindSavings(){
+  const map = {"in-rate":"rate","in-cap":"cap","in-max":"maxLen","in-disc":"disc","in-ws":"ws","in-seat":"seat"};
+  for (const [id, k] of Object.entries(map)){
+    const el = document.getElementById(id); el.value = SV[k] || (k === "ws" ? "" : SV[k]);
+    el.addEventListener("input", () => { const v = parseFloat(el.value); SV[k] = isFinite(v) && v >= 0 ? v : 0; localStorage.setItem("pud."+k, SV[k]); if (state.tab === "savings") renderSavings(); });
+  }
+  document.querySelector(".tabs").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (!b) return; state.tab = b.dataset.tab; history.replaceState(null, "", "#" + state.tab); render(); window.scrollTo({top:0, behavior:"smooth"}); });
+}
+
+/* ---------- main ---------- */
+function render(){
+  renderControls();
+  const sv = state.tab === "savings";
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === state.tab)));
+  $("#tab-usage").hidden = sv; $("#tab-savings").hidden = !sv;
+  $("#ctl-range").hidden = sv; $("#ctl-bill").hidden = !sv;
+  document.body.classList.toggle("mode-savings", sv);
+  $("#title").textContent = sv ? "Savings & suggestions" : "Phaze usage";
+  $("#kpis").hidden = sv; $("#hero").hidden = !sv; $("#api").hidden = sv;
+  document.title = sv ? "Phaze savings & suggestions" : "Phaze usage dashboard";
+  { const Mb = savingsModel(); const tot = Math.max(0,Mb.longSave) + Math.max(0,Mb.commitSave) + Math.max(0,Mb.poolSave);
+    $("#sv-badge").textContent = tot >= 1 ? "save " + usd0(tot) + "/yr" : (Mb.freed ? Mb.freed + " to free" : ""); $("#sv-badge").hidden = !$("#sv-badge").textContent; }
+  if (sv){
+    const orgName = state.org === "all" ? `${DATA.orgs.length} organizations` : DATA.orgs[+state.org].name;
+    $("#subtitle").textContent = `${orgName} · based on your usage since ${new Date(FIRST*1000).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric",timeZone:state.tz})}`;
+    $("#snap").innerHTML = `Snapshot<br>${esc(fmtWhen(SNAP, state.tz))} ${TZS.find(t=>t[0]===state.tz)[1]}`;
+    return renderSavings();
+  }
+  const w0 = windowStart();
+  const sess = filtered();
+  const sessAllOrgs = DATA.sessions.filter(s => s[5] === 2 ? s[3] >= w0 : s[4] >= w0);
+  const conc = concurrency(sess, w0, state.tz);
+  const orgName = state.org === "all" ? `${DATA.orgs.length} organizations` : DATA.orgs[+state.org].name;
+  const rl = RANGES.find(r => r[0] === state.range)[1].toLowerCase();
+  $("#subtitle").textContent = `Enterprise overview · ${orgName} · ${rl === "all time" ? "since " + fmtWhen(FIRST, state.tz).split(",")[0] + " " + new Date(FIRST*1000).getUTCFullYear() : "last " + rl}`;
+  $("#snap").innerHTML = `Snapshot<br>${esc(fmtWhen(SNAP, state.tz))} ${TZS.find(t=>t[0]===state.tz)[1]}`;
+  renderKpis(sess, conc, w0);
+  const heat = renderHeat(conc);
+  renderPeaks(conc, heat);
+  renderTrend(sess, conc, w0);
+  renderOrgs(sessAllOrgs, w0);
+  renderLen(sess, w0);
+  renderPeople(sess, w0);
+  renderMachines(sess, w0);
+  renderFleet();
+  renderRelays();
+  $("#foot").innerHTML = `People, machines, groups and sites are pseudonymized. Session end is the disconnect time, or the last heartbeat when no disconnect was recorded. Attempts with no connect time count as failed. Snapshot of ${DATA.sessions.length.toLocaleString("en-US")} connection records.`;
+}
+state.tab = location.hash === "#savings" ? "savings" : "usage";
+renderApi();
+bindControls();
+bindSavings();
+render();
+</script>
+</body>
+</html>
